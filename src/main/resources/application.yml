@@ -7,8 +7,8 @@ spring:
 
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:paymentdb}
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -29,6 +29,8 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
     consumer:
       group-id: payment-service-group
       auto-offset-reset: earliest
@@ -36,15 +38,25 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "com.vivaeventos.*"
+        spring.json.value.default.type: com.vivaeventos.paymentservice.dto.OrdenListaParaPagoEvent
 
-# Pasarela de pagos (Wompi sandbox por defecto para Colombia - R-04)
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka}
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+
 payment:
   gateway:
-    provider: wompi
     base-url: ${PAYMENT_GATEWAY_URL:https://sandbox.wompi.co/v1}
-    public-key: ${PAYMENT_PUBLIC_KEY}
-    private-key: ${PAYMENT_PRIVATE_KEY}
-    webhook-secret: ${PAYMENT_WEBHOOK_SECRET}
+    public-key: ${PAYMENT_PUBLIC_KEY:pub_test_placeholder}
+    private-key: ${PAYMENT_PRIVATE_KEY:prv_test_placeholder}
+    webhook-secret: ${PAYMENT_WEBHOOK_SECRET:secret_placeholder}
     timeout-seconds: 30
 
 resilience4j:
@@ -54,12 +66,14 @@ resilience4j:
         sliding-window-size: 10
         failure-rate-threshold: 60
         wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,circuitbreakers
   endpoint:
     health:
       show-details: always
@@ -67,10 +81,4 @@ management:
 logging:
   level:
     com.vivaeventos.paymentservice: DEBUG
-
-kafka:
-  topics:
-    payment-initiated: payment.initiated    # Escucha
-    payment-confirmed: payment.confirmed    # Publica
-    payment-failed: payment.failed          # Publica
-    payment-pending: payment.pending        # Publica
+    org.springframework.kafka: INFO

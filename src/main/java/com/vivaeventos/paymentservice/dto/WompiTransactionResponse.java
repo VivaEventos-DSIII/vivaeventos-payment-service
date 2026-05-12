@@ -3,32 +3,16 @@ package com.vivaeventos.paymentservice.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.List;
-
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record WompiWebhookRequest(
-        String event,
-        Data data,
-        @JsonProperty("sent_at") String sentAt,
-        Signature signature
-) {
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Data(Transaction transaction) {}
+public record WompiTransactionResponse(Data data) {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Transaction(
+    public record Data(
             String id,
             String status,
             String reference,
             @JsonProperty("amount_in_cents") Long amountInCents,
             String currency,
             @JsonProperty("payment_method_type") String paymentMethodType
-    ) {}
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Signature(
-            List<String> properties,
-            String checksum,
-            Long timestamp
     ) {}
 }

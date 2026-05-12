@@ -14,19 +14,28 @@ import java.util.UUID;
 public class PaymentWebhook {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payment_id")
     private Payment payment;
 
+    @Column(name = "event_type", nullable = false)
     private String eventType;
 
-    @Column(columnDefinition = "jsonb")
+    @Column(name = "raw_payload", columnDefinition = "jsonb", nullable = false)
     private String rawPayload;
 
-    private Boolean processed;
+    @Column(name = "processed", nullable = false)
+    @Builder.Default
+    private Boolean processed = false;
 
+    @Column(name = "received_at", nullable = false)
     private LocalDateTime receivedAt;
+
+    @PrePersist
+    void prePersist() {
+        if (receivedAt == null) receivedAt = LocalDateTime.now();
+    }
 }

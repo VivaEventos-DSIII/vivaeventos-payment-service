@@ -11,4 +11,8 @@ RUN addgroup -S vivaeventos && adduser -S vivaeventos -G vivaeventos
 COPY --from=builder /app/target/*.jar app.jar
 USER vivaeventos
 EXPOSE 8083
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", \
+  "-Djava.security.egd=file:/dev/./urandom", \
+  "-XX:+UseContainerSupport", \
+  "-XX:MaxRAMPercentage=75.0", \
+  "-jar", "app.jar"]

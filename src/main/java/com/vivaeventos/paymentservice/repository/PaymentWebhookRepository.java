@@ -8,5 +8,5 @@ import java.util.UUID;
 
 @Repository
 public interface PaymentWebhookRepository extends JpaRepository<PaymentWebhook, UUID> {
-    boolean existsByPayment_GatewayPaymentIdAndEventType(String gatewayPaymentId, String eventType);
+    boolean existsByPayment_WompiTransactionIdAndEventType(String wompiTransactionId, String eventType);
 }
