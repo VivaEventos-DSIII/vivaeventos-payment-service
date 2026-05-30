@@ -16,6 +16,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.contains;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -117,6 +119,22 @@ class ReconciliationServiceTest {
         assertEquals(PaymentStatus.PENDIENTE, payment.getStatus());
         verify(paymentRepository, never()).save(any());
         verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
+    void reconciliar_whenPaymentExceedsMaxAge_failsAndPublishesFailEvent() {
+        when(wompiConfig.getPendingThresholdMinutes()).thenReturn(3);
+        when(wompiConfig.getMaxPendingAgeHours()).thenReturn(24);
+        Payment payment = buildPendingPayment("txn-001");
+        payment.setCreatedAt(LocalDateTime.now().minusHours(25));
+        when(paymentRepository.findByStatusAndCreatedAtBefore(any(), any())).thenReturn(List.of(payment));
+        when(wompiClient.getTransaction("txn-001")).thenReturn(buildWompiResponse("PENDING"));
+
+        reconciliationService.reconciliarPagosPendientes();
+
+        assertEquals(PaymentStatus.FALLIDO, payment.getStatus());
+        verify(paymentRepository).save(payment);
+        verify(eventPublisher).publishPagoFallido(eq(payment), contains("Tiempo máximo"));
     }
 
     @Test

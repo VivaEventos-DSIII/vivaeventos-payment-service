@@ -41,7 +41,8 @@ class PaymentServiceTest {
                 "cliente@example.com",
                 "Carlos López",
                 250000L,
-                "tok_test_visa_1234"
+                "tok_test_visa_1234",
+                "3001234567"
         );
     }
 

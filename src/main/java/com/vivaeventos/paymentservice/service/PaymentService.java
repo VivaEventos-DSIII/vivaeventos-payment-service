@@ -65,7 +65,7 @@ public class PaymentService {
                         .build())
                 .customerData(WompiTransactionRequest.CustomerData.builder()
                         .fullName(event.customerName())
-                        .phoneNumber("3000000000")
+                        .phoneNumber(event.customerPhone() != null ? event.customerPhone() : "")
                         .build())
                 .build();
 

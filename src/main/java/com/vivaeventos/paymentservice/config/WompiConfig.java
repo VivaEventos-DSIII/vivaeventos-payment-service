@@ -15,4 +15,5 @@ public class WompiConfig {
     private int timeoutSeconds = 30;
     private long reconciliationIntervalMs = 300000;
     private int pendingThresholdMinutes = 3;
+    private int maxPendingAgeHours = 24;
 }

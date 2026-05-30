@@ -111,6 +111,19 @@ class WebhookServiceTest {
     }
 
     @Test
+    void processWebhook_whenPaymentNotFound_savesWebhookForAudit() throws Exception {
+        when(webhookRepository.existsByPayment_WompiTransactionIdAndEventType(any(), any())).thenReturn(false);
+        when(paymentRepository.findByReference("ref-001")).thenReturn(Optional.empty());
+        when(objectMapper.writeValueAsString(any())).thenReturn("{}");
+
+        webhookService.processWebhook(buildWebhookRequest("APPROVED"));
+
+        verify(webhookRepository).save(any());
+        verify(paymentRepository, never()).save(any());
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
     void processWebhook_whenDuplicateWebhook_skipsProcessing() {
         when(webhookRepository.existsByPayment_WompiTransactionIdAndEventType(any(), any())).thenReturn(true);
 

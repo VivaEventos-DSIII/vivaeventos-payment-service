@@ -60,6 +60,7 @@ payment:
     timeout-seconds: 30
     reconciliation-interval-ms: 300000
     pending-threshold-minutes: 3
+    max-pending-age-hours: 24
 
 resilience4j:
   retry:

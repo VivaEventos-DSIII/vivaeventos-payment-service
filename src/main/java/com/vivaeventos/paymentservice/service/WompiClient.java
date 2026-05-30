@@ -81,6 +81,8 @@ public class WompiClient {
         throw new RuntimeException("Pasarela de pagos no disponible. Intente más tarde.", t);
     }
 
+    @Retry(name = "payment-gateway")
+    @CircuitBreaker(name = "payment-gateway")
     public WompiTransactionResponse getTransaction(String transactionId) {
         log.debug("Consultando transacción en Wompi: id={}", transactionId);
         return buildClient().get()
@@ -92,6 +94,8 @@ public class WompiClient {
                 .block();
     }
 
+    @Retry(name = "payment-gateway")
+    @CircuitBreaker(name = "payment-gateway")
     public WompiTransactionResponse getTransactionByReference(String reference) {
         log.debug("Consultando transacción por referencia en Wompi: reference={}", reference);
         WompiTransactionListResponse response = buildClient().get()

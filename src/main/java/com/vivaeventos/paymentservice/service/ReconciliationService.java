@@ -66,22 +66,48 @@ public class ReconciliationService {
                 pago.setWompiTransactionId(response.data().id());
                 pago.setPaymentMethodType(response.data().paymentMethodType());
                 paymentRepository.save(pago);
-                eventPublisher.publishPagoConfirmado(pago);
+                try {
+                    eventPublisher.publishPagoConfirmado(pago);
+                } catch (Exception e) {
+                    log.error("No se pudo publicar evento pago-confirmado para reference={}: {}", pago.getReference(), e.getMessage());
+                }
                 log.info("Reconciliación: pago APROBADO: reference={}", pago.getReference());
             }
             case "DECLINED" -> {
                 pago.setStatus(PaymentStatus.DECLINADO);
                 paymentRepository.save(pago);
-                eventPublisher.publishPagoFallido(pago, "Pago declinado por la pasarela");
+                try {
+                    eventPublisher.publishPagoFallido(pago, "Pago declinado por la pasarela");
+                } catch (Exception e) {
+                    log.error("No se pudo publicar evento pago-fallido para reference={}: {}", pago.getReference(), e.getMessage());
+                }
                 log.info("Reconciliación: pago DECLINADO: reference={}", pago.getReference());
             }
             case "VOIDED", "ERROR" -> {
                 pago.setStatus(PaymentStatus.FALLIDO);
                 paymentRepository.save(pago);
-                eventPublisher.publishPagoFallido(pago, "Transacción anulada o con error: " + status);
+                try {
+                    eventPublisher.publishPagoFallido(pago, "Transacción anulada o con error: " + status);
+                } catch (Exception e) {
+                    log.error("No se pudo publicar evento pago-fallido para reference={}: {}", pago.getReference(), e.getMessage());
+                }
                 log.info("Reconciliación: pago FALLIDO ({}): reference={}", status, pago.getReference());
             }
-            case "PENDING" -> log.debug("Reconciliación: pago sigue PENDIENTE en Wompi: reference={}", pago.getReference());
+            case "PENDING" -> {
+                if (pago.getCreatedAt() != null &&
+                        pago.getCreatedAt().isBefore(LocalDateTime.now().minusHours(wompiConfig.getMaxPendingAgeHours()))) {
+                    pago.setStatus(PaymentStatus.FALLIDO);
+                    paymentRepository.save(pago);
+                    try {
+                        eventPublisher.publishPagoFallido(pago, "Tiempo máximo de espera de confirmación superado");
+                    } catch (Exception e) {
+                        log.error("No se pudo publicar evento pago-fallido para reference={}: {}", pago.getReference(), e.getMessage());
+                    }
+                    log.warn("Reconciliación: pago expirado por tiempo máximo ({}h): reference={}", wompiConfig.getMaxPendingAgeHours(), pago.getReference());
+                } else {
+                    log.debug("Reconciliación: pago sigue PENDIENTE en Wompi: reference={}", pago.getReference());
+                }
+            }
             default -> log.warn("Reconciliación: estado desconocido de Wompi: status={} reference={}", status, pago.getReference());
         }
     }
