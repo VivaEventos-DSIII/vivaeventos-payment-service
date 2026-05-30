@@ -13,4 +13,6 @@ public class WompiConfig {
     private String privateKey;
     private String webhookSecret;
     private int timeoutSeconds = 30;
+    private long reconciliationIntervalMs = 300000;
+    private int pendingThresholdMinutes = 3;
 }

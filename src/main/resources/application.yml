@@ -58,8 +58,21 @@ payment:
     private-key: ${PAYMENT_PRIVATE_KEY:prv_test_placeholder}
     webhook-secret: ${PAYMENT_WEBHOOK_SECRET:secret_placeholder}
     timeout-seconds: 30
+    reconciliation-interval-ms: 300000
+    pending-threshold-minutes: 3
 
 resilience4j:
+  retry:
+    instances:
+      payment-gateway:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - java.lang.Exception
+        ignore-exceptions:
+          - org.springframework.web.reactive.function.client.WebClientResponseException
   circuitbreaker:
     instances:
       payment-gateway:

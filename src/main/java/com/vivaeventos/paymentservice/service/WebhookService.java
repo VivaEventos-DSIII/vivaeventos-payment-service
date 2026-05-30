@@ -80,8 +80,13 @@ public class WebhookService {
                 eventPublisher.publishPagoFallido(payment, "Transacción anulada o con error: " + gatewayStatus);
                 log.info("Pago FALLIDO ({}): reference={}", gatewayStatus, reference);
             }
+            case "PENDING" -> {
+                // Wompi aún no ha confirmado → el pago queda PENDIENTE hasta webhook final
+                log.info("Pago pendiente de confirmación por la pasarela: reference={}", reference);
+                webhookRepository.save(webhook);
+            }
             default -> {
-                log.info("Estado de pasarela no manejado: status={} reference={}", gatewayStatus, reference);
+                log.warn("Estado de pasarela no manejado: status={} reference={}", gatewayStatus, reference);
                 webhookRepository.save(webhook);
             }
         }
