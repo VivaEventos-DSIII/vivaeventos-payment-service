@@ -8,5 +8,6 @@ public record OrdenListaParaPagoEvent(
         String customerEmail,
         String customerName,
         Long amountInCents,
-        String cardToken
+        String cardToken,
+        String customerPhone
 ) {}
