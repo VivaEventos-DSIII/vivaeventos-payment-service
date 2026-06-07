@@ -36,6 +36,17 @@ public class GlobalExceptionHandler {
         return pd;
     }
 
+    @ExceptionHandler(PromocodeException.class)
+    public ProblemDetail handlePromocodeError(PromocodeException ex) {
+        log.warn("Error en validación de código promocional: code={} message={}", ex.getErrorCode(), ex.getMessage());
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        pd.setTitle("Invalid Promocode");
+        pd.setType(URI.create("urn:vivaeventos:error:invalid-promocode"));
+        pd.setProperty("errorCode", ex.getErrorCode());
+        pd.setProperty("timestamp", Instant.now());
+        return pd;
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     public ProblemDetail handleIllegalState(IllegalStateException ex) {
         log.error("Estado ilegal: {}", ex.getMessage());
