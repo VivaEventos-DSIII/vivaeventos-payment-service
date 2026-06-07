@@ -43,6 +43,11 @@ public class KafkaConfig {
     }
 
     @Bean
+    public NewTopic compraAbandonadaTopic() {
+        return TopicBuilder.name("compra-abandonada").partitions(1).replicas(1).build();
+    }
+
+    @Bean
     public ProducerFactory<String, Object> producerFactory() {
         Map<String, Object> props = kafkaProperties.buildProducerProperties(null);
         JsonSerializer<Object> valueSerializer = new JsonSerializer<>(objectMapper);

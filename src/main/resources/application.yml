@@ -65,6 +65,7 @@ payment:
     reconciliation-interval-ms: 300000
     pending-threshold-minutes: 3
     max-pending-age-hours: 24
+    abandonment-threshold-minutes: 30
 
 resilience4j:
   retry:
