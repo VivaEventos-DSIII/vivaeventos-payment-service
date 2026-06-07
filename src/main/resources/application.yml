@@ -24,6 +24,10 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
