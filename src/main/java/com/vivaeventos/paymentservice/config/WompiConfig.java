@@ -16,4 +16,5 @@ public class WompiConfig {
     private long reconciliationIntervalMs = 300000;
     private int pendingThresholdMinutes = 3;
     private int maxPendingAgeHours = 24;
+    private int abandonmentThresholdMinutes = 30;
 }
