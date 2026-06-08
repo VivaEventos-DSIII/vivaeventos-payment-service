@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -24,14 +25,14 @@ public class RefundService {
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @Transactional
-    public RefundResponseDto registrarDevolucion(RefundRequestDto request) {
+    public RefundResponseDto registrarDevolucion(RefundRequestDto request, String userEmail, UUID customerId) {
         LocalDateTime requestedAt = LocalDateTime.now();
 
         Refund refund = Refund.builder()
                 .orderId(request.orderId())
                 .eventId(request.eventId())
-                .customerId(request.customerId())
-                .userEmail(request.userEmail())
+                .customerId(customerId)
+                .userEmail(userEmail)
                 .userName(request.userName())
                 .totalAmount(request.totalAmount())
                 .reason(request.reason() != null ? request.reason() : "EVENTO_CANCELADO")

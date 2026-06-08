@@ -34,12 +34,13 @@ class RefundServiceTest {
     @InjectMocks
     private RefundService refundService;
 
+    private static final String TEST_EMAIL    = "cliente@example.com";
+    private static final UUID   TEST_CUSTOMER = UUID.nameUUIDFromBytes(TEST_EMAIL.getBytes());
+
     private RefundRequestDto buildRequest() {
         return new RefundRequestDto(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
-                UUID.randomUUID(),
-                "cliente@example.com",
                 "Carlos López",
                 new BigDecimal("240000.00"),
                 "EVENTO_CANCELADO"
@@ -50,7 +51,7 @@ class RefundServiceTest {
     void dadoSolicitudValida_cuandoSeRegistraDevolucion_entoncesSeGuardaEnBD() {
         when(refundRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        refundService.registrarDevolucion(buildRequest());
+        refundService.registrarDevolucion(buildRequest(), TEST_EMAIL, TEST_CUSTOMER);
 
         ArgumentCaptor<Refund> captor = ArgumentCaptor.forClass(Refund.class);
         verify(refundRepository).save(captor.capture());
@@ -65,7 +66,7 @@ class RefundServiceTest {
         when(refundRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         RefundRequestDto request = buildRequest();
-        refundService.registrarDevolucion(request);
+        refundService.registrarDevolucion(request, TEST_EMAIL, TEST_CUSTOMER);
 
         ArgumentCaptor<DevolucionSolicitadaEvent> eventCaptor =
                 ArgumentCaptor.forClass(DevolucionSolicitadaEvent.class);
@@ -78,8 +79,8 @@ class RefundServiceTest {
         DevolucionSolicitadaEvent event = eventCaptor.getValue();
         assertEquals(request.orderId(), event.orderId());
         assertEquals(request.eventId(), event.eventId());
-        assertEquals(request.customerId(), event.customerId());
-        assertEquals(request.userEmail(), event.userEmail());
+        assertEquals(TEST_CUSTOMER, event.customerId());
+        assertEquals(TEST_EMAIL, event.userEmail());
         assertEquals(request.userName(), event.userName());
         assertEquals(request.totalAmount(), event.totalAmount());
         assertEquals("EVENTO_CANCELADO", event.reason());
@@ -106,7 +107,7 @@ class RefundServiceTest {
                     .build();
         });
 
-        RefundResponseDto response = refundService.registrarDevolucion(buildRequest());
+        RefundResponseDto response = refundService.registrarDevolucion(buildRequest(), TEST_EMAIL, TEST_CUSTOMER);
 
         assertNotNull(response);
         assertEquals(generatedId, response.refundId());

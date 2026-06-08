@@ -6,8 +6,6 @@ import java.util.UUID;
 public record RefundRequestDto(
         UUID orderId,
         UUID eventId,
-        UUID customerId,
-        String userEmail,
         String userName,
         BigDecimal totalAmount,
         String reason
