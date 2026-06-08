@@ -1,0 +1,520 @@
+{
+  "info": {
+    "name": "VivaEventos Payment Service - Promocodes API",
+    "description": "Colección de Postman para probar los endpoints de códigos promocionales (US-07)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8083",
+      "type": "string"
+    },
+    {
+      "key": "orderId",
+      "value": "550e8400-e29b-41d4-a716-446655440001",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Promocodes",
+      "item": [
+        {
+          "name": "1. Validar Código Válido - SUMMER20",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response has valid fields', function () {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.valid).to.be.true;",
+                  "  pm.expect(jsonData.code).to.equal('SUMMER20');",
+                  "  pm.expect(jsonData.discountType).to.equal('PERCENTAGE');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/promocodes/validate?code=SUMMER20",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "api",
+                "promocodes",
+                "validate"
+              ],
+              "query": [
+                {
+                  "key": "code",
+                  "value": "SUMMER20"
+                }
+              ]
+            },
+            "description": "Valida el código SUMMER20 (20% descuento, válido)"
+          },
+          "response": []
+        },
+        {
+          "name": "2. Validar Código Inválido - NO_EXISTE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Error code is PROMOCODE_NOT_FOUND', function () {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.errorCode).to.equal('PROMOCODE_NOT_FOUND');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/promocodes/validate?code=NO_EXISTE",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "api",
+                "promocodes",
+                "validate"
+              ],
+              "query": [
+                {
+                  "key": "code",
+                  "value": "NO_EXISTE"
+                }
+              ]
+            },
+            "description": "Intenta validar un código que no existe"
+          },
+          "response": []
+        },
+        {
+          "name": "3. Validar Código Expirado - EXPIRED2025",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Code is marked as invalid due to expiration', function () {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.valid).to.be.false;",
+                  "  pm.expect(jsonData.message).to.include('expirado');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/promocodes/validate?code=EXPIRED2025",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "api",
+                "promocodes",
+                "validate"
+              ],
+              "query": [
+                {
+                  "key": "code",
+                  "value": "EXPIRED2025"
+                }
+              ]
+            },
+            "description": "Valida un código expirado"
+          },
+          "response": []
+        },
+        {
+          "name": "4. Validar Código Inactivo - INACTIVE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Code is marked as invalid due to inactive', function () {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.valid).to.be.false;",
+                  "  pm.expect(jsonData.message).to.include('inactivo');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/promocodes/validate?code=INACTIVE",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "api",
+                "promocodes",
+                "validate"
+              ],
+              "query": [
+                {
+                  "key": "code",
+                  "value": "INACTIVE"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5. Aplicar Código - Descuento Porcentual 20%",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Discount calculated correctly', function () {",
+                  "  var jsonData = pm.response.json();",
+                  "  // 500000 * 20 / 100 = 100000",
+                  "  pm.expect(jsonData.discountApplied).to.equal(100000);",
+                  "  pm.expect(jsonData.newTotal).to.equal(400000);",
+                  "  pm.expect(jsonData.newTotalInCents).to.equal(40000000);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"SUMMER20\",\n  \"orderId\": \"{{orderId}}\",\n  \"originalAmount\": 500000.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/promocodes/apply",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "api",
+                "promocodes",
+                "apply"
+              ]
+            },
+            "description": "Aplica código SUMMER20 (20% = 100K de descuento)"
+          },
+          "response": []
+        },
+        {
+          "name": "6. Aplicar Código - Descuento Fijo 100K",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Discount applied correctly for FIXED type', function () {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.discountApplied).to.equal(100000);",
+                  "  pm.expect(jsonData.newTotal).to.equal(400000);",
+                  "  pm.expect(jsonData.discountType).to.equal('FIXED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"FIXED100K\",\n  \"orderId\": \"{{orderId}}\",\n  \"originalAmount\": 500000.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/promocodes/apply",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "api",
+                "promocodes",
+                "apply"
+              ]
+            },
+            "description": "Aplica código FIXED100K (descuento fijo de 100,000 COP)"
+          },
+          "response": []
+        },
+        {
+          "name": "7. Aplicar Descuento Fijo - Mayor que el monto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Discount limited to amount, total is zero', function () {",
+                  "  var jsonData = pm.response.json();",
+                  "  // Descuento fijo 100K pero monto es 50K",
+                  "  pm.expect(jsonData.discountApplied).to.equal(50000);",
+                  "  pm.expect(jsonData.newTotal).to.equal(0);",
+                  "  pm.expect(jsonData.newTotalInCents).to.equal(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"FIXED100K\",\n  \"orderId\": \"{{orderId}}\",\n  \"originalAmount\": 50000.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/promocodes/apply",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "api",
+                "promocodes",
+                "apply"
+              ]
+            },
+            "description": "Descuento fijo de 100K aplicado a monto de 50K (no puede ser negativo)"
+          },
+          "response": []
+        },
+        {
+          "name": "8. Aplicar Código - Case Insensitive",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Code is case-insensitive', function () {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.code).to.equal('SUMMER20');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"summer20\",\n  \"orderId\": \"{{orderId}}\",\n  \"originalAmount\": 300000.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/promocodes/apply",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "api",
+                "promocodes",
+                "apply"
+              ]
+            },
+            "description": "Prueba case-insensitive: 'summer20' (minúsculas)"
+          },
+          "response": []
+        },
+        {
+          "name": "9. Error - Código vacío",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400 for empty code', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Error code is EMPTY_CODE', function () {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.errorCode).to.equal('EMPTY_CODE');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"\",\n  \"orderId\": \"{{orderId}}\",\n  \"originalAmount\": 500000.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/promocodes/apply",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "api",
+                "promocodes",
+                "apply"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "10. Error - Monto negativo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400 for negative amount', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Error code is INVALID_AMOUNT', function () {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.errorCode).to.equal('INVALID_AMOUNT');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"SUMMER20\",\n  \"orderId\": \"{{orderId}}\",\n  \"originalAmount\": -100.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/promocodes/apply",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "api",
+                "promocodes",
+                "apply"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "11. Error - Límite de usos alcanzado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400 for limit reached', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Error mentions usage limit', function () {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.detail).to.include('límite');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"LIMITREACHED\",\n  \"orderId\": \"{{orderId}}\",\n  \"originalAmount\": 500000.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/promocodes/apply",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "api",
+                "promocodes",
+                "apply"
+              ]
+            },
+            "description": "LIMITREACHED tiene usado_count = 5 y limit = 5"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
+
