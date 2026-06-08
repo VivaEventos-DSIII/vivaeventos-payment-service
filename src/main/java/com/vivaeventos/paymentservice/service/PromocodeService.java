@@ -86,6 +86,14 @@ public class PromocodeService {
 
         // Incrementar contador de usos
         promoCode.setUsedCount(promoCode.getUsedCount() + 1);
+        
+        // Auto-desactivar si se alcanza el límite de usos (US-29 Escenario 3)
+        if (promoCode.getUsageLimit() != null && promoCode.getUsedCount() >= promoCode.getUsageLimit()) {
+            promoCode.setActive(false);
+            log.info("Código promocional auto-desactivado por alcanzar límite: code={} usageLimit={}", 
+                    promoCode.getCode(), promoCode.getUsageLimit());
+        }
+        
         promocodeRepository.save(promoCode);
         log.info("Código promocional aplicado: code={} orderId={} descuento={} COP", 
                 promoCode.getCode(), request.orderId(), discountApplied);
@@ -187,6 +195,123 @@ public class PromocodeService {
                             "PROMOCODE_NOT_FOUND"
                     );
                 });
+    }
+
+    /**
+     * Obtiene un código promocional por su ID
+     * US-29: Para consultar el estado del código
+     * @param id el ID del código promocional
+     * @return ValidatePromocodeResponseDto con detalles del código
+     * @throws PromocodeException si el código no existe
+     */
+    public ValidatePromocodeResponseDto obtenerCodigo(java.util.UUID id) {
+        PromoCode promoCode = promocodeRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("Código promocional no encontrado por ID: {}", id);
+                    return new PromocodeException(
+                            "El código promocional no existe",
+                            "PROMOCODE_NOT_FOUND"
+                    );
+                });
+
+        String validationMessage = validarEstadoDelCodigo(promoCode);
+        boolean isValid = validationMessage == null;
+
+        return new ValidatePromocodeResponseDto(
+                promoCode.getId(),
+                promoCode.getCode(),
+                promoCode.getDiscountType().toString(),
+                promoCode.getDiscountValue(),
+                promoCode.getActive(),
+                promoCode.getExpirationDate(),
+                promoCode.getUsageLimit(),
+                promoCode.getUsedCount(),
+                isValid,
+                isValid ? "Código válido y activo" : validationMessage
+        );
+    }
+
+    /**
+     * Activa un código promocional
+     * US-29 Escenario 1: Los clientes pueden usarlo durante la compra
+     * @param id el ID del código a activar
+     * @return ValidatePromocodeResponseDto con el estado actual del código
+     * @throws PromocodeException si el código no existe
+     */
+    @Transactional
+    public ValidatePromocodeResponseDto activarCodigo(java.util.UUID id) {
+        PromoCode promoCode = promocodeRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("Código promocional no encontrado por ID: {}", id);
+                    return new PromocodeException(
+                            "El código promocional no existe",
+                            "PROMOCODE_NOT_FOUND"
+                    );
+                });
+
+        if (promoCode.getActive()) {
+            log.info("Código promocional ya estaba activo: id={} code={}", id, promoCode.getCode());
+        } else {
+            promoCode.setActive(true);
+            promocodeRepository.save(promoCode);
+            log.info("Código promocional activado: id={} code={}", id, promoCode.getCode());
+        }
+
+        String validationMessage = validarEstadoDelCodigo(promoCode);
+        boolean isValid = validationMessage == null;
+
+        return new ValidatePromocodeResponseDto(
+                promoCode.getId(),
+                promoCode.getCode(),
+                promoCode.getDiscountType().toString(),
+                promoCode.getDiscountValue(),
+                promoCode.getActive(),
+                promoCode.getExpirationDate(),
+                promoCode.getUsageLimit(),
+                promoCode.getUsedCount(),
+                isValid,
+                promoCode.getActive() ? "Código activado correctamente" : validationMessage
+        );
+    }
+
+    /**
+     * Desactiva un código promocional
+     * US-29 Escenario 2: El sistema rechaza el descuento en nuevas compras
+     * @param id el ID del código a desactivar
+     * @return ValidatePromocodeResponseDto con el estado actual del código
+     * @throws PromocodeException si el código no existe
+     */
+    @Transactional
+    public ValidatePromocodeResponseDto desactivarCodigo(java.util.UUID id) {
+        PromoCode promoCode = promocodeRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("Código promocional no encontrado por ID: {}", id);
+                    return new PromocodeException(
+                            "El código promocional no existe",
+                            "PROMOCODE_NOT_FOUND"
+                    );
+                });
+
+        if (!promoCode.getActive()) {
+            log.info("Código promocional ya estaba inactivo: id={} code={}", id, promoCode.getCode());
+        } else {
+            promoCode.setActive(false);
+            promocodeRepository.save(promoCode);
+            log.info("Código promocional desactivado: id={} code={}", id, promoCode.getCode());
+        }
+
+        return new ValidatePromocodeResponseDto(
+                promoCode.getId(),
+                promoCode.getCode(),
+                promoCode.getDiscountType().toString(),
+                promoCode.getDiscountValue(),
+                promoCode.getActive(),
+                promoCode.getExpirationDate(),
+                promoCode.getUsageLimit(),
+                promoCode.getUsedCount(),
+                false,
+                "Código desactivado correctamente"
+        );
     }
 }
 
