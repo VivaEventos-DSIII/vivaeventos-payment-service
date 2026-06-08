@@ -4,6 +4,7 @@ import com.vivaeventos.paymentservice.dto.ApplyPromocodeRequestDto;
 import com.vivaeventos.paymentservice.dto.ApplyPromocodeResponseDto;
 import com.vivaeventos.paymentservice.dto.ValidatePromocodeResponseDto;
 import com.vivaeventos.paymentservice.service.PromocodeService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -78,7 +79,7 @@ public class PromocodeController {
      */
     @PostMapping("/apply")
     public ResponseEntity<ApplyPromocodeResponseDto> aplicarCodigo(
-            @RequestBody ApplyPromocodeRequestDto request) {
+            @Valid @RequestBody ApplyPromocodeRequestDto request) {
         ApplyPromocodeResponseDto response = promocodeService.aplicarCodigo(request);
         return ResponseEntity.ok(response);
     }

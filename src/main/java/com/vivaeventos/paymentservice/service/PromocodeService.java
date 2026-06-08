@@ -66,8 +66,8 @@ public class PromocodeService {
             );
         }
 
-        // Buscar el código
-        PromoCode promoCode = buscarCodigoOThrow(request.code());
+        // Buscar el código con bloqueo pesimista para evitar race conditions en el límite de usos
+        PromoCode promoCode = buscarCodigoConBloqueoOThrow(request.code());
 
         // Validar estado del código
         String estadoInvalido = validarEstadoDelCodigo(promoCode);
@@ -137,17 +137,22 @@ public class PromocodeService {
         }
 
         // 3. Validar límite de usos (si está definido)
-        if (promoCode.getUsageLimit() != null && 
+        if (promoCode.getUsageLimit() != null &&
             promoCode.getUsedCount() >= promoCode.getUsageLimit()) {
             return "El código promocional ha alcanzado su límite de usos";
+        }
+
+        // 4. Validar que el porcentaje de descuento esté en rango válido
+        if (promoCode.getDiscountType() == PromoCode.DiscountType.PERCENTAGE) {
+            BigDecimal value = promoCode.getDiscountValue();
+            if (value.compareTo(BigDecimal.ZERO) <= 0 || value.compareTo(BigDecimal.valueOf(100)) > 0) {
+                return "El código tiene un porcentaje de descuento inválido (debe estar entre 1 y 100)";
+            }
         }
 
         return null; // Todo válido
     }
 
-    /**
-     * Busca un código o lanza excepción si no existe
-     */
     private PromoCode buscarCodigoOThrow(String code) {
         if (code == null || code.trim().isEmpty()) {
             throw new PromocodeException(
@@ -157,6 +162,24 @@ public class PromocodeService {
         }
 
         return promocodeRepository.findByCodeIgnoreCase(code.trim())
+                .orElseThrow(() -> {
+                    log.warn("Código promocional no encontrado: {}", code);
+                    return new PromocodeException(
+                            "El código promocional no existe",
+                            "PROMOCODE_NOT_FOUND"
+                    );
+                });
+    }
+
+    private PromoCode buscarCodigoConBloqueoOThrow(String code) {
+        if (code == null || code.trim().isEmpty()) {
+            throw new PromocodeException(
+                    "El código promocional no puede estar vacío",
+                    "EMPTY_CODE"
+            );
+        }
+
+        return promocodeRepository.findByCodeIgnoreCaseForUpdate(code.trim())
                 .orElseThrow(() -> {
                     log.warn("Código promocional no encontrado: {}", code);
                     return new PromocodeException(
