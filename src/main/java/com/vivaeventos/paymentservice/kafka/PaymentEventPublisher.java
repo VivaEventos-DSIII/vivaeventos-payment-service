@@ -13,8 +13,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class PaymentEventPublisher {
 
-    private static final String TOPIC_CONFIRMADO = "pago-confirmado";
-    private static final String TOPIC_FALLIDO = "pago-fallido";
+    private static final String TOPIC_CONFIRMADO = "payment.confirmed";
+    private static final String TOPIC_FALLIDO = "payment.failed";
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
