@@ -246,6 +246,159 @@ class PromocodeServiceTest {
         assertNotNull(response);
         assertEquals("SUMMER20", response.code());
     }
+
+    // ======== Activación y Desactivación Tests (US-29) ========
+
+    @Test
+    void dadoCodigoInactivo_cuandoSeActiva_entoncesQuedaActivo() {
+        UUID promocodeId = UUID.randomUUID();
+        PromoCode inactiveCode = buildValidPercenctagePromoCode();
+        inactiveCode.setId(promocodeId);
+        inactiveCode.setActive(false);
+        
+        when(promocodeRepository.findById(promocodeId)).thenReturn(Optional.of(inactiveCode));
+        when(promocodeRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        ValidatePromocodeResponseDto response = promocodeService.activarCodigo(promocodeId);
+
+        assertTrue(response.active());
+        assertEquals("Código activado correctamente", response.message());
+        verify(promocodeRepository).save(any());
+    }
+
+    @Test
+    void dadoCodigoActivoExistente_cuandoSeActiva_entoncesSeMantieneActivo() {
+        UUID promocodeId = UUID.randomUUID();
+        PromoCode activeCode = buildValidPercenctagePromoCode();
+        activeCode.setId(promocodeId);
+        activeCode.setActive(true);
+        
+        when(promocodeRepository.findById(promocodeId)).thenReturn(Optional.of(activeCode));
+
+        ValidatePromocodeResponseDto response = promocodeService.activarCodigo(promocodeId);
+
+        assertTrue(response.active());
+        assertEquals("Código activado correctamente", response.message());
+    }
+
+    @Test
+    void dadoCodigoActivoExistente_cuandoSeDesactiva_entoncesQuedaInactivo() {
+        UUID promocodeId = UUID.randomUUID();
+        PromoCode activeCode = buildValidPercenctagePromoCode();
+        activeCode.setId(promocodeId);
+        activeCode.setActive(true);
+        
+        when(promocodeRepository.findById(promocodeId)).thenReturn(Optional.of(activeCode));
+        when(promocodeRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        ValidatePromocodeResponseDto response = promocodeService.desactivarCodigo(promocodeId);
+
+        assertFalse(response.active());
+        assertEquals("Código desactivado correctamente", response.message());
+        verify(promocodeRepository).save(any());
+    }
+
+    @Test
+    void dadoCodigoInactivo_cuandoSeDesactiva_entoncesSeMantieneInactivo() {
+        UUID promocodeId = UUID.randomUUID();
+        PromoCode inactiveCode = buildValidPercenctagePromoCode();
+        inactiveCode.setId(promocodeId);
+        inactiveCode.setActive(false);
+        
+        when(promocodeRepository.findById(promocodeId)).thenReturn(Optional.of(inactiveCode));
+
+        ValidatePromocodeResponseDto response = promocodeService.desactivarCodigo(promocodeId);
+
+        assertFalse(response.active());
+        assertEquals("Código desactivado correctamente", response.message());
+    }
+
+    @Test
+    void dadoCodigoInexistente_cuandoSeActiva_entoncesLanzaExcepcion() {
+        UUID promocodeId = UUID.randomUUID();
+        when(promocodeRepository.findById(promocodeId)).thenReturn(Optional.empty());
+
+        assertThrows(PromocodeException.class, () -> promocodeService.activarCodigo(promocodeId));
+    }
+
+    @Test
+    void dadoCodigoInexistente_cuandoSeDesactiva_entoncesLanzaExcepcion() {
+        UUID promocodeId = UUID.randomUUID();
+        when(promocodeRepository.findById(promocodeId)).thenReturn(Optional.empty());
+
+        assertThrows(PromocodeException.class, () -> promocodeService.desactivarCodigo(promocodeId));
+    }
+
+    @Test
+    void dadoCodigoConLimiteAlcanzado_cuandoSeAplica_entoncesSeDesactivaAutomaticamente() {
+        PromoCode promoCode = buildValidPercenctagePromoCode();
+        promoCode.setUsageLimit(100);
+        promoCode.setUsedCount(99);
+        promoCode.setActive(true);
+        
+        when(promocodeRepository.findByCodeIgnoreCase("SUMMER20")).thenReturn(Optional.of(promoCode));
+        when(promocodeRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        ApplyPromocodeRequestDto request = new ApplyPromocodeRequestDto(
+                "SUMMER20",
+                UUID.randomUUID(),
+                new BigDecimal("500000.00")
+        );
+
+        ApplyPromocodeResponseDto response = promocodeService.aplicarCodigo(request);
+
+        assertNotNull(response);
+        assertEquals("Descuento aplicado exitosamente", response.message());
+        
+        ArgumentCaptor<PromoCode> captor = ArgumentCaptor.forClass(PromoCode.class);
+        verify(promocodeRepository).save(captor.capture());
+        PromoCode saved = captor.getValue();
+        assertEquals(100, saved.getUsedCount());
+        assertFalse(saved.getActive()); // US-29 Escenario 3: Auto-desactivado
+    }
+
+    @Test
+    void dadoCodigoConDesactivacionAutomatica_cuandoSeIntentaUsarDeNuevo_entoncesLanzaExcepcion() {
+        PromoCode promoCode = buildValidPercenctagePromoCode();
+        promoCode.setUsageLimit(100);
+        promoCode.setUsedCount(100);
+        promoCode.setActive(false); // Desactivado automáticamente
+        
+        when(promocodeRepository.findByCodeIgnoreCase("SUMMER20")).thenReturn(Optional.of(promoCode));
+
+        ApplyPromocodeRequestDto request = new ApplyPromocodeRequestDto(
+                "SUMMER20",
+                UUID.randomUUID(),
+                new BigDecimal("500000.00")
+        );
+
+        assertThrows(PromocodeException.class, () -> promocodeService.aplicarCodigo(request));
+    }
+
+    @Test
+    void dadoCodigoValido_cuandoSeObtiene_entoncesRetornaDetallesCompletos() {
+        UUID promocodeId = UUID.randomUUID();
+        PromoCode promoCode = buildValidPercenctagePromoCode();
+        promoCode.setId(promocodeId);
+        
+        when(promocodeRepository.findById(promocodeId)).thenReturn(Optional.of(promoCode));
+
+        ValidatePromocodeResponseDto response = promocodeService.obtenerCodigo(promocodeId);
+
+        assertNotNull(response);
+        assertEquals(promocodeId, response.promocodeId());
+        assertEquals("SUMMER20", response.code());
+        assertTrue(response.active());
+        assertEquals(new BigDecimal("20.00"), response.discountValue());
+    }
+
+    @Test
+    void dadoCodigoInexistente_cuandoSeObtiene_entoncesLanzaExcepcion() {
+        UUID promocodeId = UUID.randomUUID();
+        when(promocodeRepository.findById(promocodeId)).thenReturn(Optional.empty());
+
+        assertThrows(PromocodeException.class, () -> promocodeService.obtenerCodigo(promocodeId));
+    }
 }
 
 
